@@ -1,0 +1,1336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RAG Tutorial Series — LearnWithBeibei</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a26;
+    --border: #2a2a3a;
+    --text: #e8e8f0;
+    --text-dim: #8888a0;
+    --accent: #6366f1;
+    --accent2: #818cf8;
+    --green: #34d399;
+    --amber: #fbbf24;
+    --rose: #fb7185;
+    --cyan: #22d3ee;
+    --orange: #fb923c;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  .noise {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 60px;
+    padding: 60px 0 40px;
+    position: relative;
+  }
+
+  .header::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(99,102,241,0.1);
+    border: 1px solid rgba(99,102,241,0.2);
+    border-radius: 100px;
+    padding: 6px 16px;
+    font-size: 13px;
+    color: var(--accent2);
+    font-weight: 500;
+    margin-bottom: 24px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .header h1 {
+    font-family: 'Space Mono', monospace;
+    font-size: clamp(32px, 5vw, 56px);
+    font-weight: 700;
+    line-height: 1.1;
+    margin-bottom: 16px;
+    background: linear-gradient(135deg, #e8e8f0 30%, #6366f1 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .header p {
+    color: var(--text-dim);
+    font-size: 18px;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .stats-row {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    margin-top: 32px;
+    flex-wrap: wrap;
+  }
+
+  .stat {
+    text-align: center;
+  }
+
+  .stat-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--accent2);
+  }
+
+  .stat-label {
+    font-size: 12px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* Phase sections */
+  .phase {
+    margin-bottom: 48px;
+  }
+
+  .phase-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .phase-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--bg);
+    background: var(--accent);
+    padding: 4px 10px;
+    border-radius: 4px;
+    letter-spacing: 1px;
+  }
+
+  .phase-num.green { background: var(--green); }
+  .phase-num.amber { background: var(--amber); color: #000; }
+  .phase-num.rose { background: var(--rose); }
+  .phase-num.cyan { background: var(--cyan); color: #000; }
+
+  .phase-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  .phase-subtitle {
+    color: var(--text-dim);
+    font-size: 14px;
+    margin-left: auto;
+  }
+
+  /* Video cards */
+  .video-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .video-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+
+  .video-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(99,102,241,0.1);
+  }
+
+  .video-card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 20px 24px;
+    cursor: pointer;
+  }
+
+  .video-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-dim);
+    background: var(--surface2);
+    padding: 6px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+    min-width: 44px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .video-info { flex: 1; }
+
+  .video-title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+
+  .video-title {
+    font-weight: 600;
+    font-size: 16px;
+  }
+
+  .video-title-cn {
+    color: var(--text-dim);
+    font-size: 14px;
+  }
+
+  .video-meta {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+
+  .tag {
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
+  }
+
+  .tag-concept { background: rgba(99,102,241,0.15); color: var(--accent2); }
+  .tag-code { background: rgba(34,211,238,0.15); color: var(--cyan); }
+  .tag-project { background: rgba(52,211,153,0.15); color: var(--green); }
+  .tag-qa { background: rgba(251,191,36,0.15); color: var(--amber); }
+  .tag-time { background: var(--surface2); color: var(--text-dim); }
+
+  .toggle-icon {
+    color: var(--text-dim);
+    font-size: 18px;
+    transition: transform 0.3s;
+    flex-shrink: 0;
+    margin-top: 4px;
+  }
+
+  .video-card.open .toggle-icon {
+    transform: rotate(180deg);
+  }
+
+  .video-details {
+    display: none;
+    padding: 0 24px 24px;
+    border-top: 1px solid var(--border);
+    margin-top: 0;
+  }
+
+  .video-card.open .video-details {
+    display: block;
+  }
+
+  .detail-section {
+    margin-top: 16px;
+  }
+
+  .detail-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent2);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+
+  .detail-content {
+    font-size: 14px;
+    color: var(--text-dim);
+    line-height: 1.7;
+  }
+
+  .detail-content strong { color: var(--text); font-weight: 600; }
+
+  .outline-list {
+    list-style: none;
+    padding: 0;
+  }
+
+  .outline-list li {
+    position: relative;
+    padding-left: 20px;
+    margin-bottom: 6px;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+
+  .outline-list li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+  }
+
+  .keywords {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .keyword {
+    font-size: 11px;
+    padding: 2px 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .description-box {
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 16px;
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.7;
+    border-left: 3px solid var(--accent);
+  }
+
+  .description-box .en { margin-bottom: 12px; }
+  .description-box .cn { border-top: 1px solid var(--border); padding-top: 12px; }
+
+  .visual-note {
+    background: rgba(34,211,238,0.05);
+    border: 1px solid rgba(34,211,238,0.15);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--cyan);
+    margin-top: 12px;
+  }
+
+  .visual-note::before {
+    content: '🎨 Visual Aid: ';
+    font-weight: 600;
+  }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    padding: 40px 0;
+    border-top: 1px solid var(--border);
+    margin-top: 40px;
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+
+  @media (max-width: 640px) {
+    .container { padding: 20px 16px; }
+    .video-card-header { padding: 16px; }
+    .video-details { padding: 0 16px 16px; }
+    .phase-subtitle { display: none; }
+    .stats-row { gap: 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="noise"></div>
+<div class="container">
+
+<!-- Header -->
+<div class="header">
+  <div class="badge">📺 LearnWithBeibei YouTube Series</div>
+  <h1>RAG 从入门到精通<br>Complete RAG Tutorial</h1>
+  <p>A comprehensive bilingual video series covering concepts, hands-on projects, coding, and interview Q&A</p>
+  <div class="stats-row">
+    <div class="stat"><div class="stat-num">16</div><div class="stat-label">Videos</div></div>
+    <div class="stat"><div class="stat-num">5</div><div class="stat-label">Phases</div></div>
+    <div class="stat"><div class="stat-num">4</div><div class="stat-label">Projects</div></div>
+    <div class="stat"><div class="stat-num">~8hr</div><div class="stat-label">Total Content</div></div>
+  </div>
+</div>
+
+<!-- ==================== PHASE 1 ==================== -->
+<div class="phase">
+  <div class="phase-header">
+    <span class="phase-num">PHASE 1</span>
+    <span class="phase-title">RAG 基础概念 — Foundation</span>
+    <span class="phase-subtitle">3 videos · Concepts</span>
+  </div>
+  <div class="video-grid">
+
+    <!-- Video 1 -->
+    <div class="video-card" onclick="this.classList.toggle('open')">
+      <div class="video-card-header">
+        <span class="video-num">#01</span>
+        <div class="video-info">
+          <div class="video-title">What is RAG? The Big Picture</div>
+          <div class="video-title-cn">什么是RAG？全景概览</div>
+          <div class="video-meta">
+            <span class="tag tag-concept">concept</span>
+            <span class="tag tag-time">⏱ 12-15 min</span>
+          </div>
+        </div>
+        <span class="toggle-icon">▼</span>
+      </div>
+      <div class="video-details">
+        <div class="detail-section">
+          <div class="detail-label">Outline 大纲</div>
+          <ul class="outline-list">
+            <li>Why LLMs hallucinate and the knowledge cutoff problem</li>
+            <li>RAG = Retrieval + Augmented + Generation — what each word means</li>
+            <li>The 3-stage pipeline: Indexing → Retrieval → Generation</li>
+            <li>Real-world use cases: customer support, legal docs, code assistants</li>
+            <li>RAG vs Fine-tuning vs Prompt Engineering: when to use which</li>
+            <li>Quick demo: asking ChatGPT without context vs with RAG</li>
+          </ul>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">Video Description</div>
+          <div class="description-box">
+            <div class="en">🔍 What is RAG (Retrieval-Augmented Generation)? In this video, I explain the big picture of RAG — why LLMs hallucinate, how RAG solves this by grounding responses in real data, and when you should use RAG vs fine-tuning vs prompt engineering. Perfect for beginners getting started with AI engineering!
+
+📌 Chapters: 0:00 Intro | 1:30 Why LLMs Hallucinate | 4:00 RAG Pipeline Explained | 8:00 RAG vs Fine-tuning | 11:00 Real-World Use Cases
+
+🔗 Blog & code: https://ml-interview-prep-mu.vercel.app/topics/rag-retrieval</div>
+            <div class="cn">🔍 什么是RAG（检索增强生成）？本视频全面讲解RAG的核心原理——为什么大模型会"幻觉"，RAG如何通过检索真实数据来纠正回答，以及RAG vs 微调 vs 提示工程该如何选择。AI工程师必备知识！</div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">Keywords 关键字</div>
+          <div class="keywords">
+            <span class="keyword">RAG</span>
+            <span class="keyword">retrieval augmented generation</span>
+            <span class="keyword">LLM hallucination</span>
+            <span class="keyword">AI engineering</span>
+            <span class="keyword">RAG tutorial</span>
+            <span class="keyword">RAG vs fine-tuning</span>
+            <span class="keyword">检索增强生成</span>
+            <span class="keyword">大模型幻觉</span>
+            <span class="keyword">RAG教程</span>
+          </div>
+        </div>
+        <div class="visual-note">Animated diagram of the 3-stage RAG pipeline (Indexing → Retrieval → Generation). Side-by-side comparison chart: RAG vs Fine-tuning vs Prompt Engineering decision matrix.</div>
+      </div>
+    </div>
+
+    <!-- Video 2 -->
+    <div class="video-card" onclick="this.classList.toggle('open')">
+      <div class="video-card-header">
+        <span class="video-num">#02</span>
+        <div class="video-info">
+          <div class="video-title">Embeddings & Vector Similarity Explained</div>
+          <div class="video-title-cn">Embedding向量与相似度搜索详解</div>
+          <div class="video-meta">
+            <span class="tag tag-concept">concept</span>
+            <span class="tag tag-time">⏱ 12-15 min</span>
+          </div>
+        </div>
+        <span class="toggle-icon">▼</span>
+      </div>
+      <div class="video-details">
+        <div class="detail-section">
+          <div class="detail-label">Outline 大纲</div>
+          <ul class="outline-list">
+            <li>What are embeddings? From words to high-dimensional vectors</li>
+            <li>How embedding models work (sentence-transformers, OpenAI ada-002, Cohere)</li>
+            <li>Vector similarity: cosine similarity, dot product, Euclidean distance</li>
+            <li>Visual intuition: 2D/3D projections of semantic space</li>
+            <li>Why "king - man + woman ≈ queen" works</li>
+            <li>Choosing the right embedding model for your use case</li>
+          </ul>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">Video Description</div>
+          <div class="description-box">
+            <div class="en">🧠 How do machines understand meaning? This video breaks down embeddings and vector similarity — the core technology powering RAG systems. Learn cosine similarity, see 3D visualizations of semantic space, and understand how to choose the right embedding model.
+
+📌 Chapters: 0:00 Intro | 2:00 What Are Embeddings | 5:00 Similarity Metrics | 8:00 Visual Demo | 11:00 Choosing Models
+
+🔗 Series playlist: [link]</div>
+            <div class="cn">🧠 机器如何理解语义？本视频详解Embedding向量和相似度搜索的核心原理，包括余弦相似度、欧氏距离，以及如何选择合适的embedding模型。RAG系统的核心技术！</div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">Keywords 关键字</div>
+          <div class="keywords">
+            <span class="keyword">embeddings</span>
+            <span class="keyword">vector similarity</span>
+            <span class="keyword">cosine similarity</span>
+            <span class="keyword">sentence transformers</span>
+            <span class="keyword">OpenAI embeddings</span>
+            <span class="keyword">semantic search</span>
+            <span class="keyword">向量搜索</span>
+            <span class="keyword">余弦相似度</span>
+            <span class="keyword">embedding模型</span>
+          </div>
+        </div>
+        <div class="visual-note">Interactive 3D scatter plot showing word embeddings in semantic space. Animated cosine similarity calculation. Comparison table of embedding models with dimensions, speed, and cost.</div>
+      </div>
+    </div>
+
+    <!-- Video 3 -->
+    <div class="video-card" onclick="this.classList.toggle('open')">
+      <div class="video-card-header">
+        <span class="video-num">#03</span>
+        <div class="video-info">
+          <div class="video-title">Chunking Strategies & Vector Databases</div>
+          <div class="video-title-cn">文档切分策略与向量数据库</div>
+          <div class="video-meta">
+            <span class="tag tag-concept">concept</span>
+            <span class="tag tag-time">⏱ 12-15 min</span>
+          </div>
+        </div>
+        <span class="toggle-icon">▼</span>
+      </div>
+      <div class="video-details">
+        <div class="detail-section">
+          <div class="detail-label">Outline 大纲</div>
+          <ul class="outline-list">
+            <li>Why chunking matters: too big = noise, too small = lost context</li>
+            <li>Strategies: fixed-size, sentence, recursive, semantic chunking</li>
+            <li>Overlap and sliding windows</li>
+            <li>Vector databases overview: Pinecone, ChromaDB, Weaviate, pgvector</li>
+            <li>Indexing algorithms: HNSW, IVF, brute force</li>
+            <li>Metadata filtering and hybrid search preview</li>
+          </ul>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">Video Description</div>
+          <div class="description-box">
+            <div class="en">📄 How do you split documents for RAG? This video covers all major chunking strategies (fixed, recursive, semantic) and introduces vector databases (Pinecone, ChromaDB, Weaviate). Learn about HNSW indexing and when to use which approach.
+
+📌 Chapters: 0:00 Intro | 1:30 Why Chunking Matters | 4:00 Chunking Strategies | 8:00 Vector Databases | 11:00 Indexing Algorithms
+
+🔗 Blog: https://ml-interview-prep-mu.vercel.app/topics/rag-retrieval</div>
+            <div class="cn">📄 RAG系统中如何切分文档？本视频讲解固定大小、递归、语义切分等策略，并介绍主流向量数据库Pinecone、ChromaDB、Weaviate的选择和HNSW索引算法。</div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">Keywords 关键字</div>
+          <div class="keywords">
+            <span class="keyword">chunking strategies</span>
+            <span class="keyword">vector database</span>
+            <span class="keyword">Pinecone</span>
+            <span class="keyword">ChromaDB</span>
+            <span class="keyword">Weaviate</span>
+            <span class="keyword">HNSW</span>
+            <span class="keyword">text splitting</span>
+            <span class="keyword">文档切分</span>
+            <span class="keyword">向量数据库</span>
+          </div>
+        </div>
+        <div class="visual-note">Animated document being split with different strategies side-by-side. HNSW graph visualization showing nearest neighbor search. Vector DB comparison table with features/pricing.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ==================== PHASE 2 ==================== -->
+<div class="phase">
+  <div class="phase-header">
+    <span class="phase-num green">PHASE 2</span>
+    <span class="phase-title">动手实战 — Hands-On Build</span>
+    <span class="phase-subtitle">4 videos · Project #1</span>
+  </div>
+  <div class="video-grid">
+
+    <!-- Video 4 -->
+    <div class="video-card" onclick="this.classList.toggle('open')">
+      <div class="video-card-header">
+        <span class="video-num">#04</span>
+        <div class="video-info">
+          <div class="video-title">Build a RAG System from Scratch (Part 1): Ingestion Pipeline</div>
+          <div class="video-title-cn">从零构建RAG系统（上）：数据摄取管道</div>
+          <div class="video-meta">
+            <span class="tag tag-project">project</span>
+            <span class="tag tag-code">coding</span>
+            <span class="tag tag-time">⏱ 18-22 min</span>
+          </div>
+        </div>
+        <span class="toggle-icon">▼</span>
+      </div>
+      <div class="video-details">
+        <div class="detail-section">
+          <div class="detail-label">Outline 大纲</div>
+          <ul class="outline-list">
+            <li>Project overview: Q&A chatbot over your own PDF documents</li>
+            <li>Setup: Python env, LangChain, OpenAI API key</li>
+            <li>Loading documents: PDF, Markdown, web pages</li>
+            <li>Implementing recursive text splitter with overlap</li>
+            <li>Generating embeddings with OpenAI / free alternatives (HuggingFace)</li>
+            <li>Storing in ChromaDB (local, free)</li>
+            <li>Testing: verify chunks and search results</li>
+          </ul>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">Video Description</div>
+          <div class="description-box">
+            <div class="en">🛠️ Let's build a RAG system from scratch! Part 1 covers the complete ingestion pipeline — loading PDFs, chunking with LangChain's RecursiveCharacterTextSplitter, generating embeddings, and storing them in ChromaDB. Free stack, no paid APIs needed!
+
+📌 Chapters: 0:00 Project Overview | 2:00 Environment Setup | 5:00 Document Loading | 9:00 Chunking Code | 13:00 Embeddings | 17:00 ChromaDB Storage
+
+💻 GitHub: [repo link] | 🔗 Blog: [link]</div>
+            <div class="cn">🛠️ 从零构建RAG系统！第一部分讲解完整的数据摄取管道——加载PDF、使用LangChain切分文档、生成向量、存入ChromaDB。全部使用免费工具，无需付费API！</div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">Keywords 关键字</div>
+          <div class="keywords">
+            <span class="keyword">RAG tutorial python</span>
+            <span class="keyword">LangChain RAG</span>
+            <span class="keyword">ChromaDB tutorial</span>
+            <span class="keyword">build RAG system</span>
+            <span class="keyword">PDF chatbot</span>
+            <span class="keyword">document ingestion</span>
+            <span class="keyword">RAG实战</span>
+            <span class="keyword">LangChain教程</span>
+          </div>
+        </div>
+        <div class="visual-note">Architecture diagram showing the ingestion pipeline flow. Terminal screen recording with code walkthrough. Before/after showing raw document vs chunked + embedded output.</div>
+      </div>
+    </div>
+
+    <!-- Video 5 -->
+    <div class="video-card" onclick="this.classList.toggle('open')">
+      <div class="video-card-header">
+        <span class="video-num">#05</span>
+        <div class="video-info">
+          <div class="video-title">Build a RAG System from Scratch (Part 2): Retrieval & Generation</div>
+          <div class="video-title-cn">从零构建RAG系统（下）：检索与生成</div>
+          <div class="video-meta">
+            <span class="tag tag-project">project</span>
+            <span class="tag tag-code">coding</span>
+            <span class="tag tag-time">⏱ 18-22 min</span>
+          </div>
+        </div>
+        <span class="toggle-icon">▼</span>
+      </div>
+      <div class="video-details">
+        <div class="detail-section">
+          <div class="detail-label">Outline 大纲</div>
+          <ul class="outline-list">
+            <li>Building the retrieval chain: query → embed → search → rank</li>
+            <li>Prompt engineering for RAG: system prompt with context injection</li>
+            <li>Connecting to LLM (OpenAI GPT-4 / free Ollama local model)</li>
+            <li>Building a simple Streamlit/Gradio chat UI</li>
+            <li>Testing with real questions against your documents</li>
+            <li>Handling edge cases: no relevant docs found, conflicting info</li>
+          </ul>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">Video Description</div>
+          <div class="description-box">
+            <div class="en">🤖 Part 2: Complete the RAG system! Build the retrieval chain, craft effective RAG prompts, connect to an LLM, and create a chat interface with Streamlit. Watch it answer questions about YOUR documents in real-time!
+
+📌 Chapters: 0:00 Recap | 1:30 Retrieval Chain | 6:00 RAG Prompt Design | 10:00 LLM Integration | 14:00 Chat UI | 18:00 Live Demo
+
+💻 GitHub: [repo link]</div>
+            <div class="cn">🤖 第二部分：完成RAG系统！构建检索链、设计RAG提示词、接入大模型、用Streamlit搭建聊天界面。实时演示对你自己文档的问答效果！</div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">Keywords 关键字</div>
+          <div class="keywords">
+            <span class="keyword">RAG retrieval chain</span>
+            <span class="keyword">LangChain QA</span>
+            <span class="keyword">Streamlit chatbot</span>
+            <span class="keyword">RAG prompt engineering</span>
+            <span class="keyword">Ollama RAG</span>
+            <span class="keyword">RAG检索链</span>
+            <span class="keyword">RAG提示词</span>
+          </div>
+        </div>
+        <div class="visual-note">Live demo recording of the chatbot answering questions. Animated flow: query → embedding → vector search → context injection → LLM response. Split-screen: code on left, running app on right.</div>
+      </div>
+    </div>
+
+    <!-- Video 6 -->
+    <div class="video-card" onclick="this.classList.toggle('open')">
+      <div class="video-card-header">
+        <span class="video-num">#06</span>
+        <div class="video-info">
+          <div class="video-title">Hybrid Search: BM25 + Dense Retrieval</div>
+          <div class="video-title-cn">混合搜索：BM25 + 稠密检索</div>
+          <div class="video-meta">
+            <span class="tag tag-concept">concept</span>
+            <span class="tag tag-code">coding</span>
+            <span class="tag tag-time">⏱ 15-18 min</span>
+          </div>
+        </div>
+        <span class="toggle-icon">▼</span>
+      </div>
+      <div class="video-details">
+        <div class="detail-section">
+          <div class="detail-label">Outline 大纲</div>
+          <ul class="outline-list">
+            <li>Sparse vs Dense retrieval: when semantic search fails</li>
+            <li>BM25 & inverted index explained</li>
+            <li>Hybrid search: combining BM25 + vector search</li>
+            <li>Reciprocal Rank Fusion (RRF) scoring</li>
+            <li>Code: implementing hybrid search with LangChain EnsembleRetriever</li>
+            <li>Comparison demo: dense-only vs hybrid results</li>
+          </ul>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">Video Description</div>
+          <div class="description-box">
+            <div class="en">🔀 Why vector search alone isn't enough! Learn hybrid search — combining BM25 keyword matching with dense vector retrieval using Reciprocal Rank Fusion. See dramatic improvements in retrieval quality with a hands-on coding demo.
+
+📌 Chapters: 0:00 The Problem | 2:00 BM25 Explained | 6:00 Hybrid Search Architecture | 10:00 Code Implementation | 14:00 Results Comparison
+
+💻 GitHub: [repo link]</div>
+            <div class="cn">🔀 为什么仅靠向量搜索不够？本视频讲解混合搜索——结合BM25关键词匹配和稠密向量检索，通过RRF融合大幅提升检索质量。包含实战代码演示！</div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">Keywords 关键字</div>
+          <div class="keywords">
+            <span class="keyword">hybrid search RAG</span>
+            <span class="keyword">BM25</span>
+            <span class="keyword">dense retrieval</span>
+            <span class="keyword">reciprocal rank fusion</span>
+            <span class="keyword">ensemble retriever</span>
+            <span class="keyword">混合搜索</span>
+            <span class="keyword">BM25算法</span>
+          </div>
+        </div>
+        <div class="visual-note">Side-by-side visualization: sparse (keyword) vs dense (semantic) retrieval on the same query. Animated RRF scoring calculation. Bar chart comparing retrieval accuracy: dense-only vs hybrid.</div>
+      </div>
+    </div>
+
+    <!-- Video 7 -->
+    <div class="video-card" onclick="this.classList.toggle('open')">
+      <div class="video-card-header">
+        <span class="video-num">#07</span>
+        <div class="video-info">
+          <div class="video-title">Re-ranking & Two-Stage Retrieval</div>
+          <div class="video-title-cn">重排序与两阶段检索架构</div>
+          <div class="video-meta">
+            <span class="tag tag-concept">concept</span>
+            <span class="tag tag-code">coding</span>
+            <span class="tag tag-time">⏱ 12-15 min</span>
+          </div>
+        </div>
+        <span class="toggle-icon">▼</span>
+      </div>
+      <div class="video-details">
+        <div class="detail-section">
+          <div class="detail-label">Outline 大纲</div>
+          <ul class="outline-list">
+            <li>Why top-k retrieval isn't always accurate enough</li>
+            <li>Two-stage retrieval: fast recall → precise re-ranking</li>
+            <li>Cross-encoder re-rankers: Cohere Rerank, ColBERT, BGE</li>
+            <li>Code: adding Cohere Rerank to our RAG pipeline</li>
+            <li>Performance comparison: with vs without re-ranking</li>
+            <li>When to use re-ranking (cost vs quality tradeoff)</li>
+          </ul>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">Video Description</div>
+          <div class="description-box">
+            <div class="en">🎯 Take your RAG retrieval to the next level with re-ranking! Learn the two-stage retrieval architecture, implement cross-encoder re-ranking with Cohere, and see how it dramatically improves answer quality.
+
+📌 Chapters: 0:00 The Retrieval Quality Problem | 2:30 Two-Stage Architecture | 6:00 Re-ranker Models | 9:00 Code Implementation | 12:00 Results
+
+💻 GitHub: [repo link]</div>
+            <div class="cn">🎯 用重排序提升RAG检索质量！讲解两阶段检索架构，实现Cohere交叉编码器重排序，对比有无重排序的回答质量差异。</div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">Keywords 关键字</div>
+          <div class="keywords">
+            <span class="keyword">re-ranking RAG</span>
+            <span class="keyword">cross-encoder</span>
+            <span class="keyword">Cohere rerank</span>
+            <span class="keyword">two-stage retrieval</span>
+            <span class="keyword">ColBERT</span>
+            <span class="keyword">重排序</span>
+            <span class="keyword">两阶段检索</span>
+          </div>
+        </div>
+        <div class="visual-note">Animated pipeline: Stage 1 (fast recall, many docs) → Stage 2 (re-ranker scores, top results). Before/after ranked list showing re-ordering effect. Architecture diagram of the full enhanced pipeline.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ==================== PHASE 3 ==================== -->
+<div class="phase">
+  <div class="phase-header">
+    <span class="phase-num amber">PHASE 3</span>
+    <span class="phase-title">进阶技术 — Advanced RAG</span>
+    <span class="phase-subtitle">3 videos · Advanced Patterns</span>
+  </div>
+  <div class="video-grid">
+
+    <!-- Video 8 -->
+    <div class="video-card" onclick="this.classList.toggle('open')">
+      <div class="video-card-header">
+        <span class="video-num">#08</span>
+        <div class="video-info">
+          <div class="video-title">Evaluating RAG: RAGAS, Faithfulness & Relevance</div>
+          <div class="video-title-cn">RAG评估：RAGAS框架、忠实度与相关性</div>
+          <div class="video-meta">
+            <span class="tag tag-concept">concept</span>
+            <span class="tag tag-code">coding</span>
+            <span class="tag tag-time">⏱ 15-18 min</span>
+          </div>
+        </div>
+        <span class="toggle-icon">▼</span>
+      </div>
+      <div class="video-details">
+        <div class="detail-section">
+          <div class="detail-label">Outline 大纲</div>
+          <ul class="outline-list">
+            <li>Why you MUST evaluate RAG systems (not just vibes)</li>
+            <li>Key metrics: faithfulness, answer relevance, context precision/recall</li>
+            <li>RAGAS framework deep dive</li>
+            <li>Code: evaluating our RAG system with RAGAS</li>
+            <li>Building eval datasets: manual + synthetic generation</li>
+            <li>Continuous evaluation in production</li>
+          </ul>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">Video Description</div>
+          <div class="description-box">
+            <div class="en">📊 How do you know if your RAG system actually works? Learn RAG evaluation with the RAGAS framework — measure faithfulness, answer relevance, and context quality. Build evaluation datasets and set up continuous monitoring.
+
+📌 Chapters: 0:00 Why Evaluate | 2:00 Key Metrics | 6:00 RAGAS Framework | 10:00 Code Demo | 14:00 Production Monitoring
+
+💻 GitHub: [repo link]</div>
+            <div class="cn">📊 如何判断RAG系统好不好？讲解RAGAS评估框架——衡量忠实度、回答相关性、上下文质量。实战构建评估数据集，搭建持续监控体系。</div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">Keywords 关键字</div>
+          <div class="keywords">
+            <span class="keyword">RAG evaluation</span>
+            <span class="keyword">RAGAS</span>
+            <span class="keyword">faithfulness</span>
+            <span class="keyword">answer relevance</span>
+            <span class="keyword">RAG metrics</span>
+            <span class="keyword">RAG评估</span>
+            <span class="keyword">忠实度</span>
+          </div>
+        </div>
+        <div class="visual-note">Metric dashboard mockup showing faithfulness, relevance, precision scores. Animated flow: question → retrieved context → answer → evaluation scores. Example eval dataset table with ground truth.</div>
+      </div>
+    </div>
+
+    <!-- Video 9 -->
+    <div class="video-card" onclick="this.classList.toggle('open')">
+      <div class="video-card-header">
+        <span class="video-num">#09</span>
+        <div class="video-info">
+          <div class="video-title">Advanced RAG Patterns: Query Transform, HyDE, Self-RAG</div>
+          <div class="video-title-cn">高级RAG模式：查询改写、HyDE、Self-RAG</div>
+          <div class="video-meta">
+            <span class="tag tag-concept">concept</span>
+            <span class="tag tag-time">⏱ 15-18 min</span>
+          </div>
+        </div>
+        <span class="toggle-icon">▼</span>
+      </div>
+      <div class="video-details">
+        <div class="detail-section">
+          <div class="detail-label">Outline 大纲</div>
+          <ul class="outline-list">
+            <li>Pre-retrieval: query expansion, decomposition, step-back prompting</li>
+            <li>HyDE: Hypothetical Document Embeddings</li>
+            <li>Self-RAG: LLM decides when to retrieve</li>
+            <li>Post-retrieval: context compression, lost-in-the-middle</li>
+            <li>Corrective RAG (CRAG) pattern</li>
+            <li>Decision guide: which patterns for which problems</li>
+          </ul>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">Video Description</div>
+          <div class="description-box">
+            <div class="en">🚀 Level up your RAG with advanced patterns! Learn query transformation (HyDE, decomposition), Self-RAG for adaptive retrieval, context compression, and the CRAG pattern. Know which technique solves which problem.
+
+📌 Chapters: 0:00 Beyond Basic RAG | 2:00 Query Transformation | 6:00 HyDE | 9:00 Self-RAG | 12:00 CRAG | 15:00 Decision Guide
+
+🔗 Blog: [link]</div>
+            <div class="cn">🚀 进阶RAG技术！讲解查询改写（HyDE、查询分解）、Self-RAG自适应检索、上下文压缩和CRAG纠错模式。提供问题-技术匹配指南。</div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">Keywords 关键字</div>
+          <div class="keywords">
+            <span class="keyword">advanced RAG</span>
+            <span class="keyword">HyDE</span>
+            <span class="keyword">self-RAG</span>
+            <span class="keyword">query transformation</span>
+            <span class="keyword">CRAG</span>
+            <span class="keyword">高级RAG</span>
+            <span class="keyword">查询改写</span>
+          </div>
+        </div>
+        <div class="visual-note">Flowchart comparing 5 advanced patterns side by side. HyDE animated: query → hypothetical doc → embedding → real retrieval. Decision tree: "Which advanced pattern should I use?"</div>
+      </div>
+    </div>
+
+    <!-- Video 10 -->
+    <div class="video-card" onclick="this.classList.toggle('open')">
+      <div class="video-card-header">
+        <span class="video-num">#10</span>
+        <div class="video-info">
+          <div class="video-title">RAG with ElasticSearch / OpenSearch</div>
+          <div class="video-title-cn">用ElasticSearch/OpenSearch构建生产级搜索</div>
+          <div class="video-meta">
+            <span class="tag tag-project">project</span>
+            <span class="tag tag-code">coding</span>
+            <span class="tag tag-time">⏱ 18-22 min</span>
+          </div>
+        </div>
+        <span class="toggle-icon">▼</span>
+      </div>
+      <div class="video-details">
+        <div class="detail-section">
+          <div class="detail-label">Outline 大纲</div>
+          <ul class="outline-list">
+            <li>Why ElasticSearch for production RAG</li>
+            <li>Setting up ES with Docker</li>
+            <li>Inverted index + kNN vector search in one system</li>
+            <li>Implementing hybrid search with ES</li>
+            <li>Query understanding and intent detection</li>
+            <li>Search evaluation: MRR, NDCG, precision@k</li>
+          </ul>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">Video Description</div>
+          <div class="description-box">
+            <div class="en">🔧 Production-grade RAG with ElasticSearch! Set up ES with Docker, implement hybrid search (BM25 + kNN vectors), add query understanding, and evaluate with MRR/NDCG. The search infrastructure used at scale by real companies.
+
+📌 Chapters: 0:00 Why ElasticSearch | 3:00 Docker Setup | 7:00 Hybrid Search | 12:00 Query Understanding | 16:00 Evaluation Metrics
+
+💻 GitHub: [repo link]</div>
+            <div class="cn">🔧 用ElasticSearch构建生产级RAG！Docker部署ES，实现混合搜索，添加查询理解，用MRR/NDCG评估。企业级搜索架构实战！</div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">Keywords 关键字</div>
+          <div class="keywords">
+            <span class="keyword">ElasticSearch RAG</span>
+            <span class="keyword">OpenSearch</span>
+            <span class="keyword">production RAG</span>
+            <span class="keyword">MRR NDCG</span>
+            <span class="keyword">search engineering</span>
+            <span class="keyword">ElasticSearch教程</span>
+            <span class="keyword">搜索引擎</span>
+          </div>
+        </div>
+        <div class="visual-note">ES architecture diagram: inverted index + vector index. Docker Compose visual. Dashboard showing search metrics (MRR, NDCG, latency).</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ==================== PHASE 4 ==================== -->
+<div class="phase">
+  <div class="phase-header">
+    <span class="phase-num rose">PHASE 4</span>
+    <span class="phase-title">云端部署 — Cloud RAG</span>
+    <span class="phase-subtitle">3 videos · Multi-Cloud</span>
+  </div>
+  <div class="video-grid">
+
+    <!-- Video 11 -->
+    <div class="video-card" onclick="this.classList.toggle('open')">
+      <div class="video-card-header">
+        <span class="video-num">#11</span>
+        <div class="video-info">
+          <div class="video-title">RAG on AWS Bedrock: Knowledge Bases & Guardrails</div>
+          <div class="video-title-cn">AWS Bedrock RAG：知识库与安全护栏</div>
+          <div class="video-meta">
+            <span class="tag tag-project">project</span>
+            <span class="tag tag-code">coding</span>
+            <span class="tag tag-time">⏱ 18-22 min</span>
+          </div>
+        </div>
+        <span class="toggle-icon">▼</span>
+      </div>
+      <div class="video-details">
+        <div class="detail-section">
+          <div class="detail-label">Outline 大纲</div>
+          <ul class="outline-list">
+            <li>AWS Bedrock overview: managed LLM + RAG service</li>
+            <li>Setting up Knowledge Bases with S3 + OpenSearch Serverless</li>
+            <li>Automatic chunking, embedding, and indexing</li>
+            <li>Bedrock Guardrails for content safety</li>
+            <li>Python SDK: boto3 for Bedrock RAG queries</li>
+            <li>Cost analysis and when to use managed vs self-hosted</li>
+          </ul>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">Video Description</div>
+          <div class="description-box">
+            <div class="en">☁️ Build RAG on AWS Bedrock — the managed way! Set up Knowledge Bases with S3 storage, OpenSearch Serverless for vectors, and Bedrock Guardrails for safety. Enterprise-grade RAG without managing infrastructure.
+
+📌 Chapters: 0:00 AWS Bedrock Overview | 3:00 Knowledge Base Setup | 8:00 Guardrails | 12:00 Python SDK | 16:00 Cost Analysis
+
+💻 GitHub: [repo link]</div>
+            <div class="cn">☁️ 在AWS Bedrock上构建RAG——托管方案！配置知识库（S3+OpenSearch），设置Guardrails安全护栏，用Python SDK查询。企业级RAG无需管理基础设施！</div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">Keywords 关键字</div>
+          <div class="keywords">
+            <span class="keyword">AWS Bedrock RAG</span>
+            <span class="keyword">Bedrock Knowledge Bases</span>
+            <span class="keyword">Bedrock Guardrails</span>
+            <span class="keyword">managed RAG</span>
+            <span class="keyword">AWS AI</span>
+            <span class="keyword">AWS Bedrock教程</span>
+            <span class="keyword">知识库</span>
+          </div>
+        </div>
+        <div class="visual-note">AWS architecture diagram: S3 → Bedrock Knowledge Base → OpenSearch Serverless → Bedrock LLM. Console walkthrough screenshots. Cost comparison table: self-hosted vs Bedrock.</div>
+      </div>
+    </div>
+
+    <!-- Video 12 -->
+    <div class="video-card" onclick="this.classList.toggle('open')">
+      <div class="video-card-header">
+        <span class="video-num">#12</span>
+        <div class="video-info">
+          <div class="video-title">RAG on GCP Vertex AI & Azure OpenAI</div>
+          <div class="video-title-cn">GCP Vertex AI 与 Azure OpenAI RAG实战</div>
+          <div class="video-meta">
+            <span class="tag tag-project">project</span>
+            <span class="tag tag-code">coding</span>
+            <span class="tag tag-time">⏱ 15-18 min</span>
+          </div>
+        </div>
+        <span class="toggle-icon">▼</span>
+      </div>
+      <div class="video-details">
+        <div class="detail-section">
+          <div class="detail-label">Outline 大纲</div>
+          <ul class="outline-list">
+            <li>GCP Vertex AI Search: grounding with enterprise data</li>
+            <li>Gemini 1.5 with 2M token context — is RAG still needed?</li>
+            <li>Azure OpenAI + AI Search for RAG</li>
+            <li>Multi-cloud abstraction pattern with LiteLLM</li>
+            <li>Three-cloud decision framework</li>
+            <li>Cost optimization across clouds</li>
+          </ul>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">Video Description</div>
+          <div class="description-box">
+            <div class="en">🌐 RAG across all 3 major clouds! Compare GCP Vertex AI Search, Azure OpenAI + AI Search, and AWS Bedrock. Learn the multi-cloud abstraction pattern and a decision framework for choosing the right cloud for your RAG needs.
+
+📌 Chapters: 0:00 GCP Vertex AI | 5:00 Long Context vs RAG | 8:00 Azure OpenAI | 12:00 Multi-Cloud Pattern | 15:00 Decision Framework
+
+💻 GitHub: [repo link]</div>
+            <div class="cn">🌐 三大云平台RAG对比！GCP Vertex AI Search、Azure OpenAI + AI Search、AWS Bedrock全面比较。多云抽象模式和选型决策框架。</div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">Keywords 关键字</div>
+          <div class="keywords">
+            <span class="keyword">Vertex AI RAG</span>
+            <span class="keyword">Azure OpenAI RAG</span>
+            <span class="keyword">multi-cloud AI</span>
+            <span class="keyword">LiteLLM</span>
+            <span class="keyword">cloud AI comparison</span>
+            <span class="keyword">多云AI</span>
+            <span class="keyword">云端RAG</span>
+          </div>
+        </div>
+        <div class="visual-note">Three-column comparison: AWS vs GCP vs Azure RAG offerings. Decision flowchart: "Which cloud for my RAG?" Cost comparison calculator visualization.</div>
+      </div>
+    </div>
+
+    <!-- Video 13 -->
+    <div class="video-card" onclick="this.classList.toggle('open')">
+      <div class="video-card-header">
+        <span class="video-num">#13</span>
+        <div class="video-info">
+          <div class="video-title">Multi-Agent RAG: Verification & Fact-Checking</div>
+          <div class="video-title-cn">多智能体RAG：验证与事实核查</div>
+          <div class="video-meta">
+            <span class="tag tag-project">project</span>
+            <span class="tag tag-code">coding</span>
+            <span class="tag tag-time">⏱ 18-22 min</span>
+          </div>
+        </div>
+        <span class="toggle-icon">▼</span>
+      </div>
+      <div class="video-details">
+        <div class="detail-section">
+          <div class="detail-label">Outline 大纲</div>
+          <ul class="outline-list">
+            <li>Multi-agent vs single-agent RAG: when to go multi</li>
+            <li>Architecture: retriever agent, verifier agent, synthesizer agent</li>
+            <li>Document processing pipelines for complex docs</li>
+            <li>Verification confidence scoring</li>
+            <li>Building with LangGraph or CrewAI</li>
+            <li>Use case: pitch deck verification system</li>
+          </ul>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">Video Description</div>
+          <div class="description-box">
+            <div class="en">🤖🤖🤖 Multi-agent RAG systems! Build a verification pipeline where multiple AI agents collaborate — one retrieves, one verifies, one synthesizes. Perfect for high-stakes applications like legal docs and financial analysis.
+
+📌 Chapters: 0:00 Why Multi-Agent | 3:00 Architecture Design | 7:00 Agent Implementation | 12:00 Confidence Scoring | 16:00 Demo
+
+💻 GitHub: [repo link]</div>
+            <div class="cn">🤖🤖🤖 多智能体RAG系统！构建多个AI代理协作的验证管道——检索、验证、综合。适用于法律文档、金融分析等高要求场景。</div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">Keywords 关键字</div>
+          <div class="keywords">
+            <span class="keyword">multi-agent RAG</span>
+            <span class="keyword">LangGraph</span>
+            <span class="keyword">CrewAI</span>
+            <span class="keyword">AI agents</span>
+            <span class="keyword">fact checking AI</span>
+            <span class="keyword">多智能体</span>
+            <span class="keyword">AI代理</span>
+          </div>
+        </div>
+        <div class="visual-note">Multi-agent orchestration diagram with message flows. Agent state machine visualization. Demo: pitch deck being verified with confidence scores overlay.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ==================== PHASE 5 ==================== -->
+<div class="phase">
+  <div class="phase-header">
+    <span class="phase-num cyan">PHASE 5</span>
+    <span class="phase-title">面试题攻略 — Interview Q&A</span>
+    <span class="phase-subtitle">3 videos · Interview Prep</span>
+  </div>
+  <div class="video-grid">
+
+    <!-- Video 14 -->
+    <div class="video-card" onclick="this.classList.toggle('open')">
+      <div class="video-card-header">
+        <span class="video-num">#14</span>
+        <div class="video-info">
+          <div class="video-title">RAG Interview Questions: Fundamentals</div>
+          <div class="video-title-cn">RAG面试题精讲（一）：基础概念</div>
+          <div class="video-meta">
+            <span class="tag tag-qa">interview</span>
+            <span class="tag tag-time">⏱ 15-18 min</span>
+          </div>
+        </div>
+        <span class="toggle-icon">▼</span>
+      </div>
+      <div class="video-details">
+        <div class="detail-section">
+          <div class="detail-label">Questions Covered</div>
+          <ul class="outline-list">
+            <li><strong>Q1:</strong> Explain RAG. When and how would you use it?</li>
+            <li><strong>Q2:</strong> When would you use fine-tuning vs RAG vs prompt engineering?</li>
+            <li><strong>Q3:</strong> How do embeddings work? Compare embedding models.</li>
+            <li><strong>Q4:</strong> What chunking strategies exist? How do you choose?</li>
+            <li><strong>Q5:</strong> Compare vector databases. When to use which?</li>
+            <li>For each: model answer structure, common mistakes, follow-up questions</li>
+          </ul>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">Video Description</div>
+          <div class="description-box">
+            <div class="en">🎯 Ace your RAG interview! Part 1 covers fundamental questions: What is RAG, RAG vs fine-tuning, embeddings, chunking strategies, and vector databases. Each question includes a model answer framework, common mistakes to avoid, and follow-ups.
+
+📌 Chapters: 0:00 How to Answer RAG Questions | 2:00 Q1: Explain RAG | 5:00 Q2: RAG vs Fine-tuning | 8:00 Q3: Embeddings | 11:00 Q4: Chunking | 14:00 Q5: Vector DBs
+
+🔗 Practice: https://ml-interview-prep-mu.vercel.app/topics/rag-retrieval</div>
+            <div class="cn">🎯 RAG面试题精讲第一期！涵盖基础概念：什么是RAG、RAG vs 微调、Embedding原理、切分策略、向量数据库选型。每题提供答题框架、常见错误、追问提示。</div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">Keywords 关键字</div>
+          <div class="keywords">
+            <span class="keyword">RAG interview questions</span>
+            <span class="keyword">ML interview</span>
+            <span class="keyword">AI engineer interview</span>
+            <span class="keyword">RAG面试题</span>
+            <span class="keyword">AI工程师面试</span>
+            <span class="keyword">机器学习面试</span>
+          </div>
+        </div>
+        <div class="visual-note">Answer framework template card for each question. "Good vs Bad Answer" side-by-side comparison. Quick reference cheat sheet at the end.</div>
+      </div>
+    </div>
+
+    <!-- Video 15 -->
+    <div class="video-card" onclick="this.classList.toggle('open')">
+      <div class="video-card-header">
+        <span class="video-num">#15</span>
+        <div class="video-info">
+          <div class="video-title">RAG Interview Questions: System Design</div>
+          <div class="video-title-cn">RAG面试题精讲（二）：系统设计</div>
+          <div class="video-meta">
+            <span class="tag tag-qa">interview</span>
+            <span class="tag tag-time">⏱ 15-18 min</span>
+          </div>
+        </div>
+        <span class="toggle-icon">▼</span>
+      </div>
+      <div class="video-details">
+        <div class="detail-section">
+          <div class="detail-label">Questions Covered</div>
+          <ul class="outline-list">
+            <li><strong>Q6:</strong> Design a RAG system for a company with 10M documents</li>
+            <li><strong>Q7:</strong> How would you evaluate and improve a RAG system in production?</li>
+            <li><strong>Q8:</strong> Explain hybrid search. When is it better than dense-only?</li>
+            <li><strong>Q9:</strong> How do you handle multi-modal RAG (images + text)?</li>
+            <li><strong>Q10:</strong> Design a RAG system that handles real-time data updates</li>
+            <li>System design answer template: requirements → architecture → tradeoffs</li>
+          </ul>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">Video Description</div>
+          <div class="description-box">
+            <div class="en">🏗️ RAG system design interviews! Part 2 tackles design questions: scaling to millions of docs, production evaluation, hybrid search, multi-modal RAG, and real-time updates. Learn the structured approach interviewers expect.
+
+📌 Chapters: 0:00 System Design Framework | 2:00 Q6: Scale Design | 6:00 Q7: Production Eval | 9:00 Q8: Hybrid Search | 12:00 Q9: Multi-modal | 15:00 Q10: Real-time
+
+🔗 Practice: [link]</div>
+            <div class="cn">🏗️ RAG系统设计面试题！讲解大规模文档、生产环境评估、混合搜索、多模态RAG、实时更新等设计题。提供面试官期望的结构化答题方法。</div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">Keywords 关键字</div>
+          <div class="keywords">
+            <span class="keyword">RAG system design</span>
+            <span class="keyword">ML system design interview</span>
+            <span class="keyword">RAG at scale</span>
+            <span class="keyword">multi-modal RAG</span>
+            <span class="keyword">RAG系统设计</span>
+            <span class="keyword">系统设计面试</span>
+          </div>
+        </div>
+        <div class="visual-note">Whiteboard-style system architecture for each design question. Scaling diagram: from prototype → production. Trade-off comparison tables for design decisions.</div>
+      </div>
+    </div>
+
+    <!-- Video 16 -->
+    <div class="video-card" onclick="this.classList.toggle('open')">
+      <div class="video-card-header">
+        <span class="video-num">#16</span>
+        <div class="video-info">
+          <div class="video-title">RAG Cheat Sheet & Series Wrap-Up</div>
+          <div class="video-title-cn">RAG速查手册 & 系列总结</div>
+          <div class="video-meta">
+            <span class="tag tag-qa">interview</span>
+            <span class="tag tag-concept">concept</span>
+            <span class="tag tag-time">⏱ 10-12 min</span>
+          </div>
+        </div>
+        <span class="toggle-icon">▼</span>
+      </div>
+      <div class="video-details">
+        <div class="detail-section">
+          <div class="detail-label">Outline 大纲</div>
+          <ul class="outline-list">
+            <li>Complete RAG architecture cheat sheet (one diagram)</li>
+            <li>Decision trees: chunking, vector DB, retrieval method, cloud</li>
+            <li>Top 10 RAG mistakes and how to avoid them</li>
+            <li>RAG in 2025+: trends, agentic RAG, GraphRAG</li>
+            <li>Resources roundup: papers, tools, communities</li>
+            <li>Series recap and what to learn next</li>
+          </ul>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">Video Description</div>
+          <div class="description-box">
+            <div class="en">📋 The ultimate RAG cheat sheet! Wrapping up the series with a complete reference: architecture diagrams, decision trees, top 10 mistakes, 2025 trends (GraphRAG, Agentic RAG), and curated resources. Pin this one!
+
+📌 Chapters: 0:00 Complete Architecture | 3:00 Decision Trees | 5:00 Top 10 Mistakes | 7:00 Future Trends | 9:00 Resources & Next Steps
+
+🔗 Full series playlist: [link] | Blog: [link]</div>
+            <div class="cn">📋 RAG终极速查手册！系列总结：完整架构图、决策树、十大常见错误、2025趋势（GraphRAG、Agentic RAG）和精选资源。收藏必备！</div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">Keywords 关键字</div>
+          <div class="keywords">
+            <span class="keyword">RAG cheat sheet</span>
+            <span class="keyword">RAG architecture</span>
+            <span class="keyword">GraphRAG</span>
+            <span class="keyword">agentic RAG</span>
+            <span class="keyword">RAG best practices</span>
+            <span class="keyword">RAG速查</span>
+            <span class="keyword">RAG最佳实践</span>
+          </div>
+        </div>
+        <div class="visual-note">One-page RAG architecture poster (printable). Decision tree flowcharts for every major choice. "Top 10 Mistakes" visual cards. Future roadmap timeline.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="footer">
+  <p>LearnWithBeibei · RAG Tutorial Series Plan · 16 Videos · ~8 Hours Total Content</p>
+  <p style="margin-top:8px;">Each video includes: 🇺🇸 English script · 🇨🇳 Chinese script · 🎨 HTML visual aid · 📝 Description & Keywords</p>
+</div>
+
+</div>
+
+<script>
+// Auto-open first card for preview
+document.querySelector('.video-card').classList.add('open');
+</script>
+</body>
+</html>
